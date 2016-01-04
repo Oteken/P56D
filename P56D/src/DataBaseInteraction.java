@@ -16,8 +16,8 @@ import org.bson.Document;
  */
 public class DataBaseInteraction 
 {
-    private String host = "149.210.237.151";
-    private int port = 27017;
+    private String host;
+    private int port;
     private MongoClient mongoClient;
     private MongoDatabase mongoDatabase;
 

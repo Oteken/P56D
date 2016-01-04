@@ -22,7 +22,7 @@ public class Main {
     public static void main(String[] args) 
     {                          
         DataBaseInteraction DBInteraction = new DataBaseInteraction();
-        DBInteraction.setHost("localhost");
+        DBInteraction.setHost("149.210.237.151");
         DBInteraction.setPort(27017);
         DBInteraction.connectToClient();
         DBInteraction.setMongoDatabase("citygis");
