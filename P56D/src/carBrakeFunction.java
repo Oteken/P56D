@@ -1,10 +1,7 @@
 
-import com.mongodb.BasicDBObject;
 import org.joda.time.DateTime;
 import org.bson.Document;
-import com.mongodb.Block;
 import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -17,9 +14,9 @@ import org.joda.time.Period;
 
 public class carBrakeFunction {
     
-    MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-    MongoDatabase db = mongoClient.getDatabase("citygis");
-    MongoCollection positionsTable = db.getCollection("positions");
+        String host = "149.210.237.151";
+        MongoClient mongoClient = new MongoClient(host, 27017);
+        MongoDatabase db = mongoClient.getDatabase("citygis");
 
 
     public void createCarTable(MongoCollection parameterTable)
@@ -30,8 +27,8 @@ public class carBrakeFunction {
         {
             row = (Document)table.next();
             String unitId = (String)row.get("UnitId");
+            unitId = "UNIT" + unitId;
             db.getCollection(unitId).insertOne(row);
-            System.out.println(unitId + " - " + row);
         }
     }
     
@@ -71,13 +68,8 @@ public class carBrakeFunction {
         double XDistance = Math.abs(BposX - AposX);
         double YDistance = Math.abs(BposY - AposY);
 
-        //KM-->M
-        XDistance = XDistance * 100;
-        YDistance = YDistance * 100;
-
         double TotalDistance = (double)Math.sqrt((double)(Math.pow(XDistance, 2) +
                               (double)Math.pow(YDistance, 2)));
-
         // M/s
         double avgSpeed = TotalDistance/seconds;
         return avgSpeed;
@@ -127,6 +119,7 @@ public class carBrakeFunction {
     
     public void updateBrakeSpeeds(MongoCollection parameterTable)
     {
+        double brakeSpeedBuffer = -8.00f;
         
         MongoCursor table = parameterTable.find().iterator();
         Document lastRow = (Document)table.next();
@@ -135,15 +128,35 @@ public class carBrakeFunction {
         while(table.hasNext())
         {
             row = (Document)table.next();
- 
-            if(calculateBrakeSpeed(row.getDouble("deltaSpeed"), row.getDouble("deltaSecond") >)
-            row.put("deltaSpeed", deltaSpeed);
-            parameterTable.replaceOne(new Document("_id", row.getObjectId("_id")), row);
             
+            double brakeSpeed;
+
+            try
+            {
+                brakeSpeed = calculateBrakeSpeed(row.getDouble("deltaSpeed"), row.getDouble("deltaSecond"));
+            }
+            catch(Exception e)
+            {
+                brakeSpeed = 0.00;
+            }
+            
+            if(brakeSpeed < brakeSpeedBuffer)
+            {
+                Document document = new Document();
+                document.put("UnitId", row.getString("UnitId"));
+                document.put("DateTime", row.getDate("DateTime"));
+                document.put("oldRdx", lastRow.getDouble("Rdx"));
+                document.put("oldRdy", lastRow.getDouble("Rdy"));
+                document.put("Rdx", row.getDouble("Rdx"));
+                document.put("Rdy", row.getDouble("Rdy"));
+                document.put("avgSpeed", row.getDouble("avgSpeed"));
+                document.put("deltaSpeed", row.getDouble("deltaSpeed"));
+                document.put("deltaSecond", row.getDouble("deltaSecond"));
+                document.put("brakeSpeed", brakeSpeed);
+                db.getCollection("brakeTable").insertOne(document);
+            }            
             lastRow = row;
         }
-        //if row has deltaSpeed && deltaSpeed > 10
-        //insert row into carBrakeTable.
     }
     
     public double calculateBrakeSpeed(double deltaSpeed, double deltaSeconds)
@@ -151,22 +164,5 @@ public class carBrakeFunction {
         double brakeSpeed = deltaSpeed / deltaSeconds;
         return brakeSpeed;
     }
-    
-    public void testFunction()
-    {
-        MongoCursor table = positionsTable.find().iterator();
-        int timeBuffer = 3;
-        
-        Document lastRow = (Document)table.next();
-        Document row = new Document();
-        while(table.hasNext())
-        {
-            row = (Document)table.next();
 
-            double f = row.getDouble("Rdx");
-            
-            f = f + 0.0001;
-            System.out.println(f);
-        }
-    }
 }
