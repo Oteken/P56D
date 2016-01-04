@@ -22,7 +22,7 @@ public class Main {
     public static void main(String[] args) 
     {                          
         DataBaseInteraction DBInteraction = new DataBaseInteraction();
-        DBInteraction.setHost("149.210.237.151");
+        DBInteraction.setHost("localhost");
         DBInteraction.setPort(27017);
         DBInteraction.connectToClient();
         DBInteraction.setMongoDatabase("citygis");
@@ -39,14 +39,14 @@ public class Main {
         
         CarBrakeFunction carBrakeFunction = new CarBrakeFunction();
 
-        carBrakeFunction.createCarTable(positionsTable);
+        carBrakeFunction.createCarTable(positionsTable, DBInteraction.getMongoDatabase());
         for(int i = 0 ; i < unitTables.length ; i++)
         {
             System.out.println(unitTables[i]);
             MongoCollection unitTable = DBInteraction.getCollection(unitTables[i]);
             carBrakeFunction.updateAverageSpeeds(unitTable);
             carBrakeFunction.updateDeltaSpeeds(unitTable);
-            carBrakeFunction.updateBrakeSpeeds(unitTable);
+            carBrakeFunction.updateBrakeSpeeds(unitTable, DBInteraction.getMongoDatabase());
         }
     }
     
